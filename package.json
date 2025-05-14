@@ -1,0 +1,29 @@
+{
+  "name": "vivatshirt_api",
+  "version": "1.0.0",
+  "description": "main private webservice of VivaTShirt e-ccomerce",
+  "main": "index.js",
+  "scripts": {
+    "dev": "nodemon ./index.js",
+    "test": "echo 'testing'"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/VivaTShirt/api.git"
+  },
+  "author": "Victor Daniel",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/VivaTShirt/api/issues"
+  },
+  "homepage": "https://github.com/VivaTShirt/api#readme",
+  "dependencies": {
+    "express": "^5.1.0",
+    "mysql": "^2.18.1",
+    "sequelize": "^6.37.7",
+    "uuid": "^11.1.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.10"
+  }
+}
