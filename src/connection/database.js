@@ -10,7 +10,6 @@ class Database{
     });
   }
 
-
   getInstace() {
     return this.sequelize;
   }
