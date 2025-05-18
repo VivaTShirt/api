@@ -1,11 +1,19 @@
-const express = require('express')
+import express from "express";
+import { version1Router } from "./src/router/version1Router.js";
 
 const app = express();
 const port = 3000
 
-import userRouter from './src/router/userRouter.js';
+//routes
+app.use("/v1", version1Router);
 
-app.use("/user", userRouter);
+
+//main
+app.get('/', (req, res) => {
+
+  res.send("API V1 VivaTshirt");
+
+});
 
 app.listen(port, () => {
   console.log(`App de exemplo esta rodando na porta ${port}`)
