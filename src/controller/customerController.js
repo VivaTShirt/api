@@ -1,4 +1,5 @@
 import { Customer } from "../model/customer.js";
+import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
 import dotenv from 'dotenv'
 dotenv.config();
@@ -61,7 +62,7 @@ class Controller {
             //gerando o jwt
             let encodedJwt = jwt.sign({
                 data: customer
-            }, 'secret', { expiresIn: '1h' });
+            }, process.env.JWT_SECRET, { expiresIn: '1h' });
 
             return {
                 name: customer.name,
