@@ -1,11 +1,10 @@
 import express from "express";
 
 //rotas
-import { userRouter } from "./userRouter.js";
-
+import { customerRouter } from "./customerRouter.js";
 
 const version1Router = express.Router();
 
-version1Router.use(`/user`, userRouter);
+version1Router.use(`/customer`, customerRouter);
 
 export {version1Router};

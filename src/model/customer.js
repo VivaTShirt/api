@@ -10,11 +10,12 @@ class CustomerModel {
                     primaryKey: true,
                     autoIncrement: true
                 },
-                address: DataTypes.INTEGER,
-                number: DataTypes.STRING,
-                neighborhood: DataTypes.STRING,
-                city: DataTypes.STRING,
-                state: DataTypes.STRING
+                name: DataTypes.STRING,
+                email: DataTypes.STRING,
+                document: DataTypes.STRING,
+                password: DataTypes.STRING,
+                address_id: DataTypes.INTEGER,
+                token: DataTypes.STRING
             },
             {
                 tableName: "customer"

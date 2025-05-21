@@ -1,17 +1,24 @@
 import express from "express";
 import { version1Router } from "./src/router/version1Router.js";
+import cors from 'cors';
 
 const app = express();
 const port = 3000
 
-//routes
-app.use("/v1", version1Router);
+app.use(express.json());// passa a aplicação para application/json
+
+var corsOptions = {
+  origin: '*',
+  optionsSuccessStatus: 200
+}
+
+app.use("/v1", cors(corsOptions), version1Router);
 
 
 //main
 app.get('/', (req, res) => {
 
-  res.send("API V1 VivaTshirt");
+  return res.send("API V1 VivaTshirt");
 
 });
 
