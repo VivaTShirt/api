@@ -16,7 +16,7 @@ const verifyJwt = (req, res, next) => {
         if (err) {
             return res.status(403).json({ message: 'Invalid or expired token.' });
         }
-        req.user = decoded;
+        req.customer = decoded;
         next();
     });
 };

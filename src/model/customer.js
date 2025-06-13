@@ -13,9 +13,7 @@ class CustomerModel {
                 name: DataTypes.STRING,
                 email: DataTypes.STRING,
                 document: DataTypes.STRING,
-                password: DataTypes.STRING,
-                address_id: DataTypes.INTEGER,
-                token: DataTypes.STRING
+                password: DataTypes.STRING
             },
             {
                 tableName: "customer"
