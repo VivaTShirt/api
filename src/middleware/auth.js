@@ -14,7 +14,7 @@ const verifyJwt = (req, res, next) => {
 
     jwt.verify(bearerToken, JWT_SECRET, (err, decoded) => {
         if (err) {
-            return res.status(403).json({ message: 'Invalid or expired token.' });
+            return res.status(403).json({ jwt_timeout: 'Invalid or expired token.' });
         }
         req.customer = decoded;
         next();

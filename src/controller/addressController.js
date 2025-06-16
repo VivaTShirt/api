@@ -18,7 +18,7 @@ class Controller {
 
     async register(address, addressNumber, neighborhood, city, state, customerId){
 
-        data = await Address.create({
+        const data = await Address.create({
             address: address,
             address_number: addressNumber,
             neighborhood: neighborhood,
@@ -27,7 +27,7 @@ class Controller {
             customer_id: customerId
         });
 
-        return await data;
+        return data;
     }
 
     async update(addressId, address, addressNumber, neighborhood, city, state, customerId) {
@@ -75,21 +75,23 @@ class Controller {
     //ativa um endereço do usuario
     async toggleActive(addressId, customerId, status) {
         
-        const allCustomerAdresses = Address.findAll({
+        const allCustomerAdresses = await Address.findAll({
             where:{
                 customer_id: customerId
             }
         });
 
-        allCustomerAdresses.update({ is_active: false });
-
-        allCustomerAdresses.save();
+        for(const address of allCustomerAdresses){
+            await address.update({ is_active: false });
+        }
 
         const activeAddress = await Address.findOne({where: {
             id: addressId
         }});
 
-        activeAddress.is_active = status;
+        if (activeAddress) {
+            await activeAddress.update({ is_active: status });
+        }
 
         return {"message": "Novo endereço foi definido."}
 
