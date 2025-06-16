@@ -1,25 +1,25 @@
 import { Customer } from "../model/customer.js";
 import { Address } from "../model/address.js";
+import { mail } from "../mail/manager.js";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
+import fs from "node:fs";
+import path from "node:path";
+import Util from '../util/util.js';
+import { PersonalAccessTokenController } from "./personalAccessTokenController.js";
+
 import dotenv from 'dotenv'
 dotenv.config();
 
 class Controller {
 
-    // async findAll(){
+    async find(customerId){
         
-    //     return await Customer.findAll();
-
-    // }
-
-    async find(requestedId){
-        
-        return await Customer.findOne({ where: { id: requestedId } });
+        return await Customer.findOne({ where: { id: customerId } });
 
     }
 
-    async register(name, email, document, password){
+    async register(name, email, password){
         
         let data = await Customer.findOne({ where: { email: email } });
 
@@ -35,23 +35,33 @@ class Controller {
         data = await Customer.create({
             name: name,
             email: email,
-            document: document,
             password: hash
         });
 
-        return {
-            name: data.name,
-            email: data.email,
-            document: data.document,
-            createdAt: data.createdAt,
-            updatedAt: data.updatedAt,
-        };
+        //recupera o caminho do template do email html...
+        const templateFilePath = path.join(Util.getTemplatePath(import.meta.url), '../mail/template/welcome.html');
+
+        //busca pelo arquivo hmtl
+        fs.readFile(templateFilePath, 'utf8', (err, content) => {
+            if (err) throw err;
+            
+            //pega o html do template de emaisl e muda as variaveis na string...
+            let plainHTML = content.toString().replace("{name}", name);
+
+            //envia email de boas vindas
+            mail.sendEmail(email, name, "Bem vinda ao VivaTshirt!", plainHTML);
+        });
+
+        return data;
     }
 
     async login(email, password){
         
-        let customer = await Customer.findOne({ where: { email: email} });
-
+        let customer = await Customer.findOne({
+            where: { email: email},
+            attributes: { include: ['password'] }
+        });
+        
         if(customer == null){
             return {
                 "error": "Usuário não existe."
@@ -63,15 +73,16 @@ class Controller {
             //gerando o jwt
             let encodedJwt = jwt.sign({
                 data: customer
-            }, process.env.JWT_SECRET, { expiresIn: '1h' });
+            }, process.env.JWT_SECRET, { expiresIn: '45h' });
 
             return {
+                id: customer.id,
                 name: customer.name,
                 email: customer.email,
                 document: customer.document,
                 createdAt: customer.createdAt,
                 updatedAt: customer.updatedAt,
-                token: encodedJwt
+                jwt_token: encodedJwt
             };
 
         }else{
@@ -82,9 +93,9 @@ class Controller {
 
     }
 
-    async update(requestedId, name, email, document, password){
+    async update(customerId, name, email, password){
 
-        const customer = await Customer.findOne({ where: { id: requestedId } });
+        const customer = await Customer.findOne({ where: { id: customerId } });
 
         if(customer == null){
             return {
@@ -94,21 +105,18 @@ class Controller {
 
         customer.update({            
             name: name,
-            email: email,
-            document: document
+            email: email
         });
 
         customer.save();
 
-        return {
-            message: "Usuário atualizado com sucesso."
-        }
+        return customer;
 
     }
 
-    async delete(requestedId){
+    async delete(customerId){
 
-        const customer = await Customer.findOne({ where: { id: requestedId } });
+        const customer = await Customer.findOne({ where: { id: customerId } });
 
         if(customer == null){
             return {
@@ -130,16 +138,56 @@ class Controller {
 
     }
 
-    //encontra todos os endereços desse ususario pelo id dele...
-    async listAdresses(requestedId) {
+    //envia o email de "esqueci a senha"
+    async sendForgotPasswordCode(email) {
         
-        return await Address.findAll({where: {customer_id: requestedId}})
+        const customer = await Customer.findOne({
+            where:{
+                email: email
+            }
+        });
+
+        if (customer == null) {
+            return {
+                error: "Usuário não existe."
+            }
+        }
+
+        const generatedCode = Util.generateCode(5);
+
+        //registrar codigo no db..
+        const expiresAt = new Date(Date.now() + 60 * 60 * 1000);//1hr ele expira
+        await PersonalAccessTokenController.register("forgot_password", customer.id, customer.name, generatedCode, null, Date.now(), expiresAt);
+
+        //enviar email com codigo...
+        //recupera o caminho do template do email html...
+        const templateFilePath = path.join(Util.getTemplatePath(import.meta.url), '../mail/template/forgotPassword.html');
+
+        //busca pelo arquivo hmtl
+        fs.readFile(templateFilePath, 'utf8', (err, content) => {
+            if (err) throw err;
+            
+            //pega o html do template de emaisl e muda as variaveis na string...
+            let plainHTML = content.toString().replace("{name}", customer.name);
+            plainHTML = plainHTML.toString().replace("{code}", generatedCode);
+            plainHTML = plainHTML.toString().replace("{reset_password_link}", "#");
+
+            //envia email de esqueci senha
+            mail.sendEmail(customer.email, customer.name, "Redefinição de Senha VivaTshirt", plainHTML);
+        });
+
+        return {
+            "message": "O código de redefinição de senha foi enviado ao e-mail com sucesso."
+        }
 
     }
 
-    async addAddress(requestedId, address, address_number, neighborhood, city, state) {
+    async changePassword(customerId, oldPassword, newPassword, code) {
 
-        const customer = await Customer.findOne({ where: { id: requestedId } });
+        const customer = await Customer.findOne({
+            where: { id: customerId },
+            attributes: { include: ['password'] }
+        });
 
         if(customer == null){
             return {
@@ -147,63 +195,10 @@ class Controller {
             };
         }
 
-        const data = await Address.create({
-            customer_id: requestedId,
-            address: address,
-            address_number: address_number,
-            neighborhood: neighborhood,
-            city: city,
-            state: state
-        });
+        const personalAT = await PersonalAccessTokenController.verifyByCode(code);
 
-        return {
-            id: data.id,
-            customer_id: data.customer_id,
-            address: data.address,
-            address_number: data.address_number,
-            neighborhood: data.neighborhood,
-            city: data.city,
-            state: data.state,
-            createdAt: data.createdAt,
-            updatedAt: data.updatedAt
-        };
-
-    }
-
-    async updateAddress(requestedId, address, address_number, neighborhood, city, state) {
-
-        const data = await Address.findOne({ where: { id: requestedId } });
-
-        if(data == null){
-            return {
-                "error": "Endereço não existe."
-            };
-        }
-
-        data.update({
-            address: address,
-            address_number: address_number,
-            neighborhood: neighborhood,
-            city: city,
-            state: state
-        });
-
-        data.save();
-
-        return {
-            message: "Endereço atualizado com sucesso."
-        };
-
-    }
-
-    async changePassword(requestedId, oldPassword, newPassword) {
-
-        const customer = await Customer.findOne({ where: { id: requestedId } });
-
-        if(customer == null){
-            return {
-                "error": "Usuário não existe."
-            };
+        if(personalAT.error){
+            return personalAT;
         }
 
         if(bcrypt.compareSync(oldPassword, customer.password) == true){
@@ -217,6 +212,9 @@ class Controller {
 
             customer.save();
 
+            //deletar codigo de recuperação antes de retornar para usuario..
+            await PersonalAccessTokenController.deleteAllRelated(customer.id);
+
             return {
                 message: "Senha alterada com sucesso."
             };
@@ -225,6 +223,31 @@ class Controller {
             return {
                 "error": "A senha antiga é inválida."
             };
+        }
+
+    }
+    
+    //encontra todos os endereços desse ususario pelo id dele...
+    async listAdresses(customerId) {
+        
+        return await Address.findAll({where: {customer_id: customerId}})
+
+    }
+
+    async getCustomerAddress(customerId){
+
+        const address = await Address.findOne({where:
+            {
+                customer_id: customerId
+            }
+        });
+
+        if (address == null) {
+            return {
+                error: "Não há endereço definido."
+            }
+        } else {
+            return address;
         }
 
     }

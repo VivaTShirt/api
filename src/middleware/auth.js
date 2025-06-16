@@ -9,7 +9,7 @@ const verifyJwt = (req, res, next) => {
     const bearerToken = authHeader && authHeader.split(' ')[1]; // Se o cabeçalho existir, ele divide o conteúdo por espaço e pega o segundo item (o token em si)
 
     if (!bearerToken) {
-        return res.status(401).json({ message: 'No token provided' });
+        return res.status(401).json({ message: 'No token provided.' });
     }
 
     jwt.verify(bearerToken, JWT_SECRET, (err, decoded) => {

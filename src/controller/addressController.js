@@ -10,28 +10,29 @@ class Controller {
 
     }
 
-    async find(requestedId){
+    async find(addressId){
         
-        return await Address.findOne({ where: { id: requestedId } });
+        return await Address.findOne({ where: { id: addressId } });
 
     }
 
-    async register(address, addressNumber, neighborhood, city, state){
+    async register(address, addressNumber, neighborhood, city, state, customerId){
 
         data = await Address.create({
             address: address,
             address_number: addressNumber,
             neighborhood: neighborhood,
             city: city,
-            state: state
+            state: state,
+            customer_id: customerId
         });
 
         return await data;
     }
 
-    async update(requestedId, address, addressNumber, neighborhood, city, state) {
+    async update(addressId, address, addressNumber, neighborhood, city, state, customerId) {
 
-        const foundedAddress = await Address.findOne({where: {id:requestedId}});
+        const foundedAddress = await Address.findOne({where: {id:addressId}});
 
         if (foundedAddress == null) {
             return {
@@ -44,7 +45,8 @@ class Controller {
             address_number: addressNumber,
             neighborhood: neighborhood,
             city: city,
-            state: state
+            state: state,
+            customer_id: customerId
         })
 
         foundedAddress.save();
@@ -52,9 +54,9 @@ class Controller {
         return await foundedAddress.toJSON();
     }
 
-    async delete(requestedId){
+    async delete(addressId){
 
-        const foundedAddress = await Address.findOne({where: {id:requestedId}});
+        const foundedAddress = await Address.findOne({where: {id:addressId}});
 
         if (foundedAddress == null) {
             return {
@@ -69,6 +71,30 @@ class Controller {
         }
 
     }
+
+    //ativa um endereço do usuario
+    async toggleActive(addressId, customerId, status) {
+        
+        const allCustomerAdresses = Address.findAll({
+            where:{
+                customer_id: customerId
+            }
+        });
+
+        allCustomerAdresses.update({ is_active: false });
+
+        allCustomerAdresses.save();
+
+        const activeAddress = await Address.findOne({where: {
+            id: addressId
+        }});
+
+        activeAddress.is_active = status;
+
+        return {"message": "Novo endereço foi definido."}
+
+    }
+
 
 }
 

@@ -12,12 +12,14 @@ class CustomerModel {
                 },
                 name: DataTypes.STRING,
                 email: DataTypes.STRING,
-                document: DataTypes.STRING,
                 password: DataTypes.STRING
             },
             {
-                tableName: "customer"
-            }
+                tableName: "customer",
+                defaultScope: {
+                    attributes: { exclude: ['password'] }
+                }
+            }            
         );
     }
 

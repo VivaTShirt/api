@@ -10,9 +10,11 @@ addressRouter.get('/:id', verifyJwt, (req, res) => {
     AddressController.find(req.params.id)
     .then(address => {       
         return res.send(address);
-    })
-    .catch(error => {
-        return res.status(500).send({ error: error.message });
+    }).catch(error => {
+        return res.status(500).send({ 
+            error: error.message,
+            trace: error.stack
+        });
     });
 
 });
@@ -38,9 +40,9 @@ addressRouter.post('/register', [
         AddressController.register(req.body.address, req.body.address_number, req.body.neighborhood, req.body.city, req.body.state).then((address) => {
             return res.status(200).send(address);
         }).catch(error => {
-            console.error(error);
-            return res.status(500).send({
-                error: error
+            return res.status(500).send({ 
+                error: error.message,
+                trace: error.stack
             });
         });
 
@@ -68,9 +70,9 @@ addressRouter.put('/update/:id', [
         AddressController.update(req.params.id, req.body.address, req.body.address_number, req.body.neighborhood, req.body.city, req.body.state).then((address) => {
             return res.status(200).send(address);
         }).catch(error => {
-            console.error(error);
-            return res.status(500).send({
-                error: error
+            return res.status(500).send({ 
+                error: error.message,
+                trace: error.stack
             });
         });
 
@@ -93,10 +95,30 @@ addressRouter.delete('/delete/:id', [
     AddressController.delete(req.params.id)
     .then((address) => {
         return res.status(200).send(address);
-    })
-    .catch(error => {
-        console.error(error);
-        return res.status(500).send({ error: error.message });
+    }).catch(error => {
+        return res.status(500).send({ 
+            error: error.message,
+            trace: error.stack
+        });
+    });
+
+});
+
+//muda o estado do endereço... status = false true
+addressRouter.patch('/active/:id', [
+    param('id').exists().withMessage("O ID do endereço é obrigatório.").notEmpty().withMessage("Preencha o ID do endereço."),
+    body('customer_id').exists().withMessage("O ID do endereço é obrigatório.").notEmpty().withMessage("Preencha o ID do endereço."),
+    body('status').exists().withMessage("O ID do endereço é obrigatório.").notEmpty().withMessage("Preencha o ID do endereço."),
+], verifyJwt, (req, res) => {
+
+    AddressController.toggleActive(req.params.id, req.body.customer_id, req.body.status).
+    then((result) => {
+        return res.send(result)
+    }).catch(error => {
+        return res.status(500).send({ 
+            error: error.message,
+            trace: error.stack
+        });
     });
 
 });

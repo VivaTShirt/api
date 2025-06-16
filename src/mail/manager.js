@@ -23,7 +23,7 @@ class MailManager {
 
     }
 
-    async sendEmail(toEmail, toName, subject, text, html) {
+    async sendEmail(toEmail, toName, subject, html ) {
 
         // Create a transport. Replace with your own transport options.
         const transport = nodemailer.createTransport(this.transport);
@@ -31,17 +31,21 @@ class MailManager {
         const info = await transport.sendMail(
             {
                 from: this.fromName, // Header From:
-                to: `${toName} <${to}>`, // Header To:
+                to: `${toName} <${toEmail}>`, // Header To:
                 envelope: {
                 from: this.from,
                 to: [toEmail]
             },
             html: html,
-            subject: subject,
-            text: text
+            subject: subject
+            //text: text
         });
 
         console.log("Envelope used:", info.envelope);
     }
 
 }
+
+const mail = new MailManager();
+
+export {mail};

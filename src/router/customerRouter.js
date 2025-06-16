@@ -1,21 +1,9 @@
 import express from "express";
 import { verifyJwt } from "../middleware/auth.js";
-import { body, validationResult } from "express-validator";
+import { body, validationResult, param } from "express-validator";
 import { CustomerController } from "../controller/customerController.js";
 
 const customerRouter = express.Router();
-
-customerRouter.get('/:id/address',[
-  param('id').exists().withMessage("ID de usuário é obrigatório.").notEmpty().withMessage("ID de usuário inválido."),
-], verifyJwt, (req, res) => {
-    CustomerController.listAdresses(req.params.id)
-    .then(customer => {       
-        return res.send(customer);
-    })
-    .catch(error => {
-        return res.status(500).send({ error: error.message });
-    });
-});
 
 customerRouter.get('/:id', verifyJwt, (req, res) => {
     
@@ -24,7 +12,10 @@ customerRouter.get('/:id', verifyJwt, (req, res) => {
         return res.send(customer);
     })
     .catch(error => {
-        return res.status(500).send({ error: error.message });
+        return res.status(500).send({ 
+            error: error.message,
+            trace: error.stack
+        });
     });
 
 });
@@ -32,8 +23,7 @@ customerRouter.get('/:id', verifyJwt, (req, res) => {
 customerRouter.post('/register', [
         body('email').exists().withMessage("Email é obrigatório.").notEmpty().withMessage("Email Inválido.").notEmpty().withMessage("Preencha o email."),
         body('password').exists().withMessage("Senha é obrigatória.").notEmpty().withMessage("Preencha a senha."),
-        body('name').exists().withMessage("Nome é obrigatório.").notEmpty().withMessage("Preencha o nome."),
-        body('document').exists().withMessage("Documento é obrigatório.").notEmpty().withMessage("Preencha o documento.")
+        body('name').exists().withMessage("Nome é obrigatório.").notEmpty().withMessage("Preencha o nome.")
     ], (req, res) => {
     
         const validate = validationResult(req);
@@ -44,12 +34,15 @@ customerRouter.post('/register', [
             });
         }
         
-        CustomerController.register(req.body.name, req.body.email, req.body.document, req.body.password)
-        .then(register => {       
+        CustomerController.register(req.body.name, req.body.email, req.body.password)
+        .then(register => {
             return res.send(register);
         })
         .catch(error => {
-            return res.status(500).send({ error: error.message });
+            return res.status(500).send({ 
+                error: error.message,
+                trace: error.stack
+            });
         });
 
 });
@@ -65,22 +58,26 @@ customerRouter.post('/login', [
             return res.status(400).send(validate.array());
         }
 
+        console.log(req.body.email, req.body.password);
+        
+
         CustomerController.login(req.body.email, req.body.password)
         .then(login => {       
             return res.send(login);
-        })
-        .catch(error => {
-            return res.status(500).send({ error: error.message });
+        }).catch(error => {
+            return res.status(500).send({ 
+                error: error.message,
+                trace: error.stack
+            });
         });
 
 });
 
 customerRouter.put('/update/:id', [
-        param('id').exists().withMessage("ID de usuário inválido.").notEmpty().withMessage("ID de usuário inválido."),
+        param('id').exists().withMessage("O ID do usuário é obrigatório.").notEmpty().withMessage("Preencha o ID do usuário."),
         body('email').exists().withMessage("Email é obrigatório.").notEmpty().withMessage("Email Inválido.").notEmpty().withMessage("Preencha o email."),
-        body('name').exists().withMessage("Nome é obrigatório.").notEmpty().withMessage("Preencha o nome."),
-        body('document').exists().withMessage("Documento é obrigatório.").notEmpty().withMessage("Preencha o documento.")
-    ], verifyJwt, (req, res) => {
+        body('name').exists().withMessage("Nome é obrigatório.").notEmpty().withMessage("Preencha o nome.")
+], verifyJwt, (req, res) => {
 
         const validate = validationResult(req);
 
@@ -90,32 +87,38 @@ customerRouter.put('/update/:id', [
             });
         }
 
-        CustomerController.update(req.params.id, req.body.name, req.body.email, req.body.document)
+        CustomerController.update(req.params.id, req.body.name, req.body.email)
         .then(customer => {
             return res.send(customer);
-        })
-        .catch(error => {
-            return res.status(500).send({ error: error.message });
+        }).catch(error => {
+            return res.status(500).send({ 
+                error: error.message,
+                trace: error.stack
+            });
         });
 
 });
 
 customerRouter.delete('/delete/:id', [
-        param('id').exists().withMessage("ID de usuário inválido.").notEmpty().withMessage("ID de usuário inválido.")
+        param('id').exists().withMessage("O ID do usuário é obrigatório.").notEmpty().withMessage("Preencha o ID do usuário.")
     ], verifyJwt, (req, res) => {
 
         CustomerController.delete(req.params.id)
         .then(customer => {
             return res.send(customer);
-        })
-        .catch(error => {
-            return res.status(500).send({ error: error.message });
+        }).catch(error => {
+            return res.status(500).send({ 
+                error: error.message,
+                trace: error.stack
+            });
         });
 
 });
 
+//atualiza a  senha do usuário usando o codigo
 customerRouter.patch('/update-password/:id', [
-        param('id').exists().withMessage("ID de usuário inválido.").notEmpty().withMessage("ID de usuário inválido."),
+        param('id').exists().withMessage("O ID do usuário é obrigatório.").notEmpty().withMessage("Preencha o ID do usuário."),
+        body('token').exists().withMessage("Token field is missed.").notEmpty().withMessage("Fill security token field."),
         body('old_password').exists().withMessage("Senha antiga é obrigatória.").notEmpty().withMessage("Preencha a senha antiga."),
         body('new_password').exists().withMessage("Nova senha é obrigatória.").notEmpty().withMessage("Preencha a nova senha.")
     ], verifyJwt, (req, res) => {
@@ -128,13 +131,91 @@ customerRouter.patch('/update-password/:id', [
             });
         }
 
-        CustomerController.updatePassword(req.params.id, req.body.old_password, req.body.new_password)
+        CustomerController.changePassword(req.params.id, req.body.old_password, req.body.new_password, req.body.token)
         .then(customer => {
             return res.send(customer);
-        })
-        .catch(error => {
-            return res.status(500).send({ error: error.message });
+        }).catch(error => {
+            return res.status(500).send({ 
+                error: error.message,
+                trace: error.stack
+            });
         });
+
+});
+
+//envia email de recuperação de senha
+customerRouter.post('/forgot-password/mail', [
+    body('email').exists().withMessage("Email é obrigatório.").notEmpty().withMessage("Preencha o email."),
+], (req, res) => {
+
+    const validate = validationResult(req);
+
+    if (validate.isEmpty() == false) {
+        return res.status(400).send({
+            missing: validate.array()
+        });
+    }
+
+    CustomerController.sendForgotPasswordCode(req.body.email).then((result) => {
+
+        return res.send(result);
+
+    }).catch(error => {
+        return res.status(500).send({ 
+            error: error.message,
+            trace: error.stack
+        });
+    });
+
+});
+
+//lista endereços do usuário
+customerRouter.get('/address/:id', [
+    param('id').exists().withMessage("O ID do usuário é obrigatório.").notEmpty().withMessage("Preencha o ID do usuário.")
+], verifyJwt, (req, res) => {
+
+    const validate = validationResult(req);
+
+    if (validate.isEmpty() == false) {
+        return res.status(400).send({
+            missing: validate.array()
+        });
+    }
+
+    CustomerController.listAdresses(req.params.id).
+    then((addresses) => {
+        return res.send(addresses)
+    }).catch(error => {
+        return res.status(500).send({ 
+            error: error.message,
+            trace: error.stack
+        });
+    });
+
+});
+
+//retorna o endereço atual do usuario
+customerRouter.get('/address/current/:id', [
+    param('id').exists().withMessage("O ID do usuário é obrigatório.").notEmpty().withMessage("Preencha o ID do usuário.")
+], verifyJwt, (req, res) => {
+
+    const validate = validationResult(req);
+
+    if (validate.isEmpty() == false) {
+        return res.status(400).send({
+            missing: validate.array()
+        });
+    }
+
+    CustomerController.getCustomerAddress(req.params.id).
+    then((address) => {
+        return res.send(address)
+    }).catch(error => {
+            return res.status(500).send({ 
+                error: error.message,
+                trace: error.stack
+            });
+    });
 
 });
 
