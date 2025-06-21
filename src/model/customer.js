@@ -12,7 +12,8 @@ class CustomerModel {
                 },
                 name: DataTypes.STRING,
                 email: DataTypes.STRING,
-                password: DataTypes.STRING
+                password: DataTypes.STRING,
+                token: DataTypes.STRING
             },
             {
                 tableName: "customer",
