@@ -6,6 +6,7 @@ import bcrypt from "bcryptjs";
 import fs from "node:fs";
 import path from "node:path";
 import Util from '../util/util.js';
+import { v4 as uuidv4 } from 'uuid';
 import { PersonalAccessTokenController } from "./personalAccessTokenController.js";
 
 import dotenv from 'dotenv'
@@ -15,44 +16,81 @@ class Controller {
 
     async find(customerId){
         
-        return await Customer.findOne({ where: { id: customerId } });
+        const user = await Customer.findOne({ where: { id: customerId } });
+
+        if (user == null) {
+            return {
+                error: "Não há usuário."
+            }
+        } else {
+            return user;
+        }
 
     }
 
     async register(name, email, password){
-        
-        let data = await Customer.findOne({ where: { email: email } });
+        // Permite que name, email e password sejam nulos
 
-        if(data != null){
-            return {
-                "error": "Usuário já existe."
-            };
+        // Só verifica duplicidade se email não for nulo
+        if (email != null) {
+            let data = await Customer.findOne({ where: { email: email } });
+            if(data != null){
+                return {
+                    "error": "Usuário já existe."
+                };
+            }
         }
 
-        const salt = bcrypt.genSaltSync(10);
-        const hash = bcrypt.hashSync(password, salt);
+        // Criptografa a senha apenas se não for nula
+        let hash = null;
+        if (password != null) {
+            const salt = bcrypt.genSaltSync(10);
+            hash = bcrypt.hashSync(password, salt);
+        }
 
-        data = await Customer.create({
-            name: name,
-            email: email,
-            password: hash
+        // Gera o token sempre
+        const userToken = uuidv4();
+
+        // Cria o usuário mesmo com campos nulos
+        const data = await Customer.create({
+            name: name ?? null,
+            email: email ?? null,
+            password: hash,
+            token: userToken
         });
 
-        //recupera o caminho do template do email html...
-        const templateFilePath = path.join(Util.getTemplatePath(import.meta.url), '../mail/template/welcome.html');
+        // Só envia email se email não for nulo
+        if(email != null){
+            const templateFilePath = path.join(Util.getTemplatePath(import.meta.url), '../mail/template/welcome.html');
+            fs.readFile(templateFilePath, 'utf8', (err, content) => {
+                if (err) throw err;
+                let plainHTML = content.toString().replace("{name}", name ?? "");
+                mail.sendEmail(email, name ?? "", "Bem vinda ao VivaTshirt!", plainHTML);
+            });
+        }
 
-        //busca pelo arquivo hmtl
-        fs.readFile(templateFilePath, 'utf8', (err, content) => {
-            if (err) throw err;
-            
-            //pega o html do template de emaisl e muda as variaveis na string...
-            let plainHTML = content.toString().replace("{name}", name);
+        return {
+            id: data.id,
+            name: data.name,
+            email: data.email,
+            token: data.token,
+            createdAt: data.createdAt,
+            updatedAt: data.updatedAt,
+        };
+    }
 
-            //envia email de boas vindas
-            mail.sendEmail(email, name, "Bem vinda ao VivaTshirt!", plainHTML);
-        });
+    async findUserByToken(userToken){
 
-        return data;
+        const user = await Customer.findOne({ where: { token: userToken } });
+
+        if (user == null) {
+            return {
+                error: "Não há usuário."
+            }
+        } else {
+            return user;
+        }
+
     }
 
     async login(email, password){
@@ -79,7 +117,7 @@ class Controller {
                 id: customer.id,
                 name: customer.name,
                 email: customer.email,
-                document: customer.document,
+                token: customer.token,
                 createdAt: customer.createdAt,
                 updatedAt: customer.updatedAt,
                 jwt_token: encodedJwt

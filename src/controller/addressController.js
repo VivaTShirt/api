@@ -12,7 +12,15 @@ class Controller {
 
     async find(addressId){
         
-        return await Address.findOne({ where: { id: addressId } });
+        const address = await Address.findOne({ where: { id: addressId } });
+
+        if (address == null) {
+            return {
+                error: "Não há endereço definido."
+            }
+        } else {
+            return address;
+        }
 
     }
 
@@ -96,7 +104,6 @@ class Controller {
         return {"message": "Novo endereço foi definido."}
 
     }
-
 
 }
 

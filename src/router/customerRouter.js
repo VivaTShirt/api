@@ -29,7 +29,7 @@ customerRouter.post('/register', [
         const validate = validationResult(req);
 
         if (validate.isEmpty() == false) {
-            return res.status(400).send({
+            return res.send({
                 missing: validate.array()
             });
         }
@@ -55,11 +55,8 @@ customerRouter.post('/login', [
         const validate = validationResult(req);
 
         if (validate.isEmpty() == false) {
-            return res.status(400).send(validate.array());
-        }
-
-        console.log(req.body.email, req.body.password);
-        
+            return res.send(validate.array());
+        }        
 
         CustomerController.login(req.body.email, req.body.password)
         .then(login => {       
@@ -82,7 +79,7 @@ customerRouter.put('/update/:id', [
         const validate = validationResult(req);
 
         if (validate.isEmpty() == false) {
-            return res.status(400).send({
+            return res.send({
                 missing: validate.array()
             });
         }
@@ -126,7 +123,7 @@ customerRouter.patch('/update-password/:id', [
         const validate = validationResult(req);
 
         if (validate.isEmpty() == false) {
-            return res.status(400).send({
+            return res.send({
                 missing: validate.array()
             });
         }
@@ -151,7 +148,7 @@ customerRouter.post('/forgot-password/mail', [
     const validate = validationResult(req);
 
     if (validate.isEmpty() == false) {
-        return res.status(400).send({
+        return res.send({
             missing: validate.array()
         });
     }
@@ -169,6 +166,30 @@ customerRouter.post('/forgot-password/mail', [
 
 });
 
+//acha o usuário pelo token
+customerRouter.get('/token/:tokenCode', [
+    param('tokenCode').exists().withMessage("O token do usuário é obrigatório.").notEmpty().withMessage("Preencha o token do usuário.")
+], verifyJwt, (req, res) => {
+
+    const validate = validationResult(req);
+
+    if (validate.isEmpty() == false) {
+        return res.send({
+            missing: validate.array()
+        });
+    }
+
+    CustomerController.findUserByToken(req.params.tokenCode).then((user) => {
+        res.send(user);
+    }).catch(error => {
+        return res.status(500).send({ 
+            error: error.message,
+            trace: error.stack
+        });
+    });
+
+});
+
 //lista endereços do usuário
 customerRouter.get('/address/:id', [
     param('id').exists().withMessage("O ID do usuário é obrigatório.").notEmpty().withMessage("Preencha o ID do usuário.")
@@ -177,7 +198,7 @@ customerRouter.get('/address/:id', [
     const validate = validationResult(req);
 
     if (validate.isEmpty() == false) {
-        return res.status(400).send({
+        return res.send({
             missing: validate.array()
         });
     }
@@ -202,7 +223,7 @@ customerRouter.get('/address/current/:id', [
     const validate = validationResult(req);
 
     if (validate.isEmpty() == false) {
-        return res.status(400).send({
+        return res.send({
             missing: validate.array()
         });
     }
