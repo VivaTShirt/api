@@ -3,6 +3,7 @@ import {google} from "googleapis";
 import { v4 as uuidv4 } from 'uuid';
 
 import dotenv from 'dotenv'
+import { CustomerController } from "../controller/customerController.js";
 dotenv.config();
 
 const googleRouter = express.Router();
@@ -13,7 +14,9 @@ const oauth2Client = new google.auth.OAuth2(
     process.env.GOOGLE_REDIRECT_URI
 );
 
-googleRouter.post('/auth/generate', (req, res) => {
+google.options({auth: oauth2Client});
+
+googleRouter.get('/auth/generate', (req, res) => {
 
     const scopes = [
         "https://www.googleapis.com/auth/userinfo.email",
@@ -48,32 +51,41 @@ googleRouter.get("/auth/redirect", async (req, res) => {
     // }
 
     //verificando se state é autentico do sistema
-    let q = req.query;
+    let q = req.query;    
 
-    console.log(req.session.state, req.query.state);
-    
+    console.log(q.state, req.session.state)
 
     if (q.error) { // An error response e.g. error=access_denied
         console.log('Error:' + q.error);
+        return;
     } else if (q.state !== req.session.state) { //check state value
         console.log('State mismatch. Possible CSRF attack.');
-        res.end('State mismatch. Possible CSRF attack.');
+        return res.end('State mismatch. Possible CSRF attack.');
     }
 
     //setando as credenciais dadas...
     let credentials = await oauth2Client.getToken(q.code);
     oauth2Client.setCredentials(credentials.tokens);
 
-    const oAuth2 = google.oauth2({
-        version: "2",
-        auth: oauth2Client
+    //recuperando dados google do usuario..
+    const gMe = await google.people("v1").people.get({
+        resourceName: 'people/me',
+        personFields: 'emailAddresses,names,photos',
     });
 
-    //salvando os dados do usuario no banco...
-    const userInfo = oAuth2.userinfo.get();
+    //registrando o usuário..
 
-    //retornando..
-    return res.send(userInfo);
+    //antes de registrar verificar se usuário já existe pelo token state...
+    CustomerController.findCustomerByToken(q.state).then(customer => {
+        const redirectUrl = process.env.SPA_APPLICATION_URL + `/login?gStateSystemToken=${q.state}`;
+        if (customer.error) { // não existe, registrar e depois o front acha e loga
+            CustomerController.register(gMe.data.names[0].displayName, gMe.data.emailAddresses[0].value, null, q.state).then((customer) => {
+                return res.redirect(redirectUrl);
+            });
+        } else { //se existe logar no front end
+            return res.redirect(redirectUrl);
+        }
+    });
 
 });
 

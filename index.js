@@ -17,14 +17,17 @@ app.use(session({
   resave: false,
   saveUninitialized: true,
   cookie: {
-    secure: true // Deixa `false` para desenvolvimento (sem HTTPS). Em produção, coloque `true` se usar HTTPS.
+    secure: false // Deixa `false` para desenvolvimento (sem HTTPS). Em produção, coloque `true` se usar HTTPS.
   }
 }));
 
+console.log(process.env.SPA_APPLICATION_URL);
+
 //configura o cors
 var corsOptions = {
-  origin: '*',
-  optionsSuccessStatus: 200
+  origin: process.env.SPA_APPLICATION_URL,
+  optionsSuccessStatus: 200,
+  credentials: true
 }
 
 app.use("/v1", cors(corsOptions), version1Router);

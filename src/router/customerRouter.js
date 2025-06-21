@@ -55,7 +55,7 @@ customerRouter.post('/login', [
         const validate = validationResult(req);
 
         if (validate.isEmpty() == false) {
-            return res.send(validate.array());
+            return res.send({missing: validate.array()});
         }        
 
         CustomerController.login(req.body.email, req.body.password)
@@ -169,7 +169,7 @@ customerRouter.post('/forgot-password/mail', [
 //acha o usuário pelo token
 customerRouter.get('/token/:tokenCode', [
     param('tokenCode').exists().withMessage("O token do usuário é obrigatório.").notEmpty().withMessage("Preencha o token do usuário.")
-], verifyJwt, (req, res) => {
+], (req, res) => {
 
     const validate = validationResult(req);
 
@@ -179,8 +179,8 @@ customerRouter.get('/token/:tokenCode', [
         });
     }
 
-    CustomerController.findUserByToken(req.params.tokenCode).then((user) => {
-        res.send(user);
+    CustomerController.findCustomerByToken(req.params.tokenCode).then((customer) => {
+        res.send(customer);
     }).catch(error => {
         return res.status(500).send({ 
             error: error.message,

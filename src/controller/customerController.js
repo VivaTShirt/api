@@ -16,20 +16,20 @@ class Controller {
 
     async find(customerId){
         
-        const user = await Customer.findOne({ where: { id: customerId } });
+        const customer = await Customer.findOne({ where: { id: customerId } });
 
-        if (user == null) {
+        if (customer == null) {
             return {
                 error: "Não há usuário."
             }
         } else {
-            return user;
+            return customer;
         }
 
     }
 
-    async register(name, email, password){
-        // Permite que name, email e password sejam nulos
+    async register(name, email, password, token = null){
+        // Permite que name, email, password e token sejam nulos
 
         // Só verifica duplicidade se email não for nulo
         if (email != null) {
@@ -48,15 +48,15 @@ class Controller {
             hash = bcrypt.hashSync(password, salt);
         }
 
-        // Gera o token sempre
-        const userToken = uuidv4();
+        // Usa o token fornecido ou gera um novo
+        const customerToken = token ?? uuidv4();
 
         // Cria o usuário mesmo com campos nulos
         const data = await Customer.create({
             name: name ?? null,
             email: email ?? null,
             password: hash,
-            token: userToken
+            token: customerToken
         });
 
         // Só envia email se email não for nulo
@@ -79,16 +79,30 @@ class Controller {
         };
     }
 
-    async findUserByToken(userToken){
+    async findCustomerByToken(customerToken){
 
-        const user = await Customer.findOne({ where: { token: userToken } });
+        const customer = await Customer.findOne({ where: { token: customerToken } });
 
-        if (user == null) {
+        if (customer == null) {
             return {
                 error: "Não há usuário."
             }
         } else {
-            return user;
+
+            //gerando o jwt
+            let encodedJwt = jwt.sign({
+                data: customer
+            }, process.env.JWT_SECRET, { expiresIn: '45h' });
+
+            return {
+                id: customer.id,
+                name: customer.name,
+                email: customer.email,
+                token: customer.token,
+                createdAt: customer.createdAt,
+                updatedAt: customer.updatedAt,
+                jwt_token: encodedJwt
+            };
         }
 
     }
